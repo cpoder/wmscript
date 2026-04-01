@@ -129,19 +129,22 @@ javac --release 11 \
   -d bin \
   src/com/softwareag/is/wmscript/editor/*.java
 
-# Package as JAR
-jar cf com.softwareag.is.wmscript.editor_0.1.0.jar \
-  -C bin com \
-  -C . plugin.xml \
-  -C . META-INF \
-  -C . grammars \
-  -C . icons
+# Package as JAR (use zip, NOT jar — jar overwrites the OSGi MANIFEST.MF)
+TMPJAR=/tmp/wmscript-jar-build
+rm -rf $TMPJAR && mkdir -p $TMPJAR/META-INF $TMPJAR/grammars $TMPJAR/icons
+cp META-INF/MANIFEST.MF $TMPJAR/META-INF/
+cp -r bin/com $TMPJAR/
+cp plugin.xml build.properties $TMPJAR/
+cp grammars/* $TMPJAR/grammars/
+cp icons/* $TMPJAR/icons/
+(cd $TMPJAR && zip -r /tmp/wmscript-plugin.jar META-INF/ com/ plugin.xml build.properties grammars/ icons/)
 
 # Deploy
-cp com.softwareag.is.wmscript.editor_0.1.0.jar \
-   /path/to/Designer/eclipse/plugins/
+cp /tmp/wmscript-plugin.jar \
+   /path/to/Designer/eclipse/plugins/com.softwareag.is.wmscript.editor_0.1.0.jar
+rm -rf $TMPJAR /tmp/wmscript-plugin.jar
 
-# Add to bundles.info
+# Add to bundles.info (first install only)
 echo "com.softwareag.is.wmscript.editor,0.1.0,plugins/com.softwareag.is.wmscript.editor_0.1.0.jar,4,false" \
   >> /path/to/Designer/eclipse/configuration/org.eclipse.equinox.simpleconfigurator/bundles.info
 ```
@@ -580,9 +583,16 @@ ECLIPSE_CP=$(echo /path/to/Designer/eclipse/plugins/*.jar | tr ' ' ':')
 javac --release 11 -cp "$ECLIPSE_CP" -d bin \
   src/com/softwareag/is/wmscript/editor/*.java
 
-# Package
-jar cf com.softwareag.is.wmscript.editor_0.1.0.jar \
-  -C bin com -C . plugin.xml -C . META-INF -C . grammars -C . icons
+# Package (use zip, NOT jar — jar overwrites the OSGi MANIFEST.MF)
+TMPJAR=/tmp/wmscript-jar-build
+rm -rf $TMPJAR && mkdir -p $TMPJAR/META-INF $TMPJAR/grammars $TMPJAR/icons
+cp META-INF/MANIFEST.MF $TMPJAR/META-INF/
+cp -r bin/com $TMPJAR/
+cp plugin.xml build.properties $TMPJAR/
+cp grammars/* $TMPJAR/grammars/ && cp icons/* $TMPJAR/icons/
+(cd $TMPJAR && zip -r /tmp/wmscript-plugin.jar META-INF/ com/ plugin.xml build.properties grammars/ icons/)
+cp /tmp/wmscript-plugin.jar com.softwareag.is.wmscript.editor_0.1.0.jar
+rm -rf $TMPJAR /tmp/wmscript-plugin.jar
 ```
 
 ## Project Structure
