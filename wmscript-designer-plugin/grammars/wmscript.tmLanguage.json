@@ -61,7 +61,7 @@
       "patterns": [
         {
           "name": "support.function.builtin.wmscript",
-          "match": "\\b(num|str|int|date|len|sum|min|max|join|split|keys|values|exists|typeof)\\b(?=\\s*\\()"
+          "match": "\\b(num|str|int|date|len|sum|min|max|join|split|keys|values|entries|exists|typeof|contains|trim|replace|sort|map|filter|reduce|upper|lower|startsWith|endsWith|substring|indexOf|abs|round|floor|ceil)\\b(?=\\s*\\()"
         }
       ]
     },
