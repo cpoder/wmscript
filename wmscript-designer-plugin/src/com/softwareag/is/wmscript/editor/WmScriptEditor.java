@@ -16,6 +16,9 @@ import org.eclipse.jface.text.IDocumentListener;
 import org.eclipse.jface.text.source.SourceViewer;
 import org.eclipse.jface.text.source.VerticalRuler;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.StyleRange;
+import org.eclipse.swt.custom.StyledText;
+import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.layout.FillLayout;
@@ -25,6 +28,8 @@ import org.eclipse.ui.IEditorInput;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * WmScript multi-page editor for Designer.
@@ -36,6 +41,14 @@ public class WmScriptEditor extends MultipageServiceEditor
     private SourceViewer sourceViewer;
     private boolean dirty = false;
     private String servicePath;
+    private com.softwareag.is.core.iscomm.server.IServerConnection server;
+
+    // Semantic coloring
+    private Color inputColor;
+    private Color outputColor;
+    private List<String> inputFieldNames = new ArrayList<>();
+    private List<String> outputFieldNames = new ArrayList<>();
+    private Runnable pendingColoring;
 
     public WmScriptEditor() {
         super(false);
@@ -100,7 +113,6 @@ public class WmScriptEditor extends MultipageServiceEditor
             // Load source from IS and get server connection
             String source = "// Loading...";
             IEditorInput editorInput = this.getEditorInput();
-            com.softwareag.is.core.iscomm.server.IServerConnection server = null;
 
             if (editorInput instanceof ISAssetEditorInput) {
                 ISAssetEditorInput assetInput = (ISAssetEditorInput) editorInput;
@@ -161,7 +173,7 @@ public class WmScriptEditor extends MultipageServiceEditor
                 }
             });
 
-            // Track changes for dirty state
+            // Track changes for dirty state + trigger semantic coloring
             document.addDocumentListener(new IDocumentListener() {
                 @Override
                 public void documentAboutToBeChanged(DocumentEvent event) {}
@@ -172,8 +184,17 @@ public class WmScriptEditor extends MultipageServiceEditor
                         dirty = true;
                         firePropertyChange(PROP_DIRTY);
                     }
+                    scheduleColoring();
                 }
             });
+
+            // Semantic coloring: input fields blue, output fields green
+            inputColor = new Color(Display.getCurrent(), 0, 100, 200);
+            outputColor = new Color(Display.getCurrent(), 0, 160, 0);
+            if (server != null && servicePath != null) {
+                loadFieldNames();
+            }
+            Display.getCurrent().asyncExec(() -> applySemanticColoring());
 
             int pageIndex = this.addPage(parent);
             this.setPageText(pageIndex, "Source");
@@ -259,6 +280,121 @@ public class WmScriptEditor extends MultipageServiceEditor
         return source != null ? source : "// No source found";
     }
 
+    // ================================================================
+    // Semantic coloring
+    // ================================================================
+
+    private void loadFieldNames() {
+        inputFieldNames.clear();
+        outputFieldNames.clear();
+        try {
+            com.wm.data.IData input = com.wm.data.IDataFactory.create();
+            com.wm.data.IDataCursor c = input.getCursor();
+            com.wm.data.IDataUtil.put(c, "name", servicePath);
+            c.destroy();
+
+            com.wm.data.IData result = server.invoke(
+                com.wm.lang.ns.NSName.create("wm.server.ns:getNode"), input);
+            com.wm.data.IDataCursor rc = result.getCursor();
+            Object nodeObj = com.wm.data.IDataUtil.get(rc, "node");
+            rc.destroy();
+
+            if (nodeObj instanceof com.wm.data.IData) {
+                com.wm.data.IDataCursor nc = ((com.wm.data.IData) nodeObj).getCursor();
+                Object sigObj = com.wm.data.IDataUtil.get(nc, "svc_sig");
+                nc.destroy();
+                if (sigObj instanceof com.wm.data.IData) {
+                    com.wm.data.IDataCursor sc = ((com.wm.data.IData) sigObj).getCursor();
+                    Object sigIn = com.wm.data.IDataUtil.get(sc, "sig_in");
+                    Object sigOut = com.wm.data.IDataUtil.get(sc, "sig_out");
+                    sc.destroy();
+                    if (sigIn instanceof com.wm.data.IData)
+                        extractFieldNames((com.wm.data.IData) sigIn, inputFieldNames);
+                    if (sigOut instanceof com.wm.data.IData)
+                        extractFieldNames((com.wm.data.IData) sigOut, outputFieldNames);
+                }
+            }
+        } catch (Exception e) {
+            // ignore — coloring is best-effort
+        }
+    }
+
+    private void extractFieldNames(com.wm.data.IData sigRecord, List<String> target) {
+        try {
+            com.wm.data.IDataCursor c = sigRecord.getCursor();
+            com.wm.data.IData[] fields = com.wm.data.IDataUtil.getIDataArray(c, "rec_fields");
+            c.destroy();
+            if (fields != null) {
+                for (com.wm.data.IData field : fields) {
+                    com.wm.data.IDataCursor fc = field.getCursor();
+                    String name = com.wm.data.IDataUtil.getString(fc, "field_name");
+                    fc.destroy();
+                    if (name != null) target.add(name);
+                }
+            }
+        } catch (Exception e) {
+            // ignore
+        }
+    }
+
+    private void applySemanticColoring() {
+        if (sourceViewer == null || sourceViewer.getTextWidget() == null
+                || sourceViewer.getTextWidget().isDisposed()) return;
+        if (inputFieldNames.isEmpty() && outputFieldNames.isEmpty()) return;
+
+        StyledText st = sourceViewer.getTextWidget();
+        String text = st.getText();
+
+        // Apply output colors first, then input (input wins on overlap)
+        for (String name : outputFieldNames) {
+            applyColorToWord(st, text, name, outputColor);
+        }
+        for (String name : inputFieldNames) {
+            applyColorToWord(st, text, name, inputColor);
+        }
+    }
+
+    private void applyColorToWord(StyledText st, String text, String word, Color color) {
+        int idx = 0;
+        int wordLen = word.length();
+        while ((idx = text.indexOf(word, idx)) >= 0) {
+            boolean startOk = idx == 0 || !isIdentChar(text.charAt(idx - 1));
+            boolean endOk = idx + wordLen >= text.length()
+                    || !isIdentChar(text.charAt(idx + wordLen));
+            if (startOk && endOk && !isInsideComment(text, idx)) {
+                StyleRange range = new StyleRange();
+                range.start = idx;
+                range.length = wordLen;
+                range.foreground = color;
+                st.setStyleRange(range);
+            }
+            idx += wordLen;
+        }
+    }
+
+    private boolean isIdentChar(char c) {
+        return Character.isLetterOrDigit(c) || c == '_';
+    }
+
+    private boolean isInsideComment(String text, int offset) {
+        // Find the start of the line containing offset
+        int lineStart = text.lastIndexOf('\n', offset - 1) + 1;
+        String linePrefix = text.substring(lineStart, offset).trim();
+        return linePrefix.startsWith("//") || linePrefix.startsWith("#");
+    }
+
+    private void scheduleColoring() {
+        Display display = Display.getCurrent();
+        if (display == null || display.isDisposed()) return;
+        if (pendingColoring != null) {
+            display.timerExec(-1, pendingColoring);
+        }
+        pendingColoring = () -> applySemanticColoring();
+        display.timerExec(500, pendingColoring);
+    }
+
+    // ================================================================
+
     @Override
     protected void createIOPage() throws Exception {
         super.createIOPage();
@@ -282,8 +418,21 @@ public class WmScriptEditor extends MultipageServiceEditor
     protected void loadModelFromStream(InputStream in) throws Exception {}
 
     @Override
-    public void assetChanged(NSRecord newIn, NSRecord newOut) {}
+    public void assetChanged(NSRecord newIn, NSRecord newOut) {
+        // I/O signature changed in the I/O tab — reload field names and re-color
+        if (server != null && servicePath != null) {
+            loadFieldNames();
+            scheduleColoring();
+        }
+    }
 
     @Override
     public void assetChanged(IModelElement before, IModelElement after) {}
+
+    @Override
+    public void dispose() {
+        if (inputColor != null && !inputColor.isDisposed()) inputColor.dispose();
+        if (outputColor != null && !outputColor.isDisposed()) outputColor.dispose();
+        super.dispose();
+    }
 }
