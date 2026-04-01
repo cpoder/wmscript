@@ -62,23 +62,6 @@ public class WmScriptContentAssistProcessor implements IContentAssistProcessor {
             Context ctx = detectContext(text);
             List<ICompletionProposal> proposals = new ArrayList<>();
 
-            // Always add builtins and keywords as fallback
-            for (String k : KEYWORDS) {
-                if (prefix.isEmpty() || k.startsWith(prefix.toLowerCase())) {
-                    proposals.add(new CompletionProposal(
-                        k, prefixStart, prefix.length(),
-                        k.length(), null, k + " [keyword]", null, null));
-                }
-            }
-            for (String b : BUILTINS) {
-                if (prefix.isEmpty() || b.startsWith(prefix.toLowerCase())) {
-                    String insert = b + "(";
-                    proposals.add(new CompletionProposal(
-                        insert, prefixStart, prefix.length(),
-                        insert.length(), null, b + "(...) [builtin]", null, null));
-                }
-            }
-
             switch (ctx) {
                 case INVOKE_SERVICE:
                     for (String svc : getAllServices()) {
@@ -137,6 +120,23 @@ public class WmScriptContentAssistProcessor implements IContentAssistProcessor {
                         }
                     }
                     break;
+            }
+
+            // Add keywords and builtins last so fields/services appear first
+            for (String k : KEYWORDS) {
+                if (prefix.isEmpty() || k.startsWith(prefix.toLowerCase())) {
+                    proposals.add(new CompletionProposal(
+                        k, prefixStart, prefix.length(),
+                        k.length(), null, k + " [keyword]", null, null));
+                }
+            }
+            for (String b : BUILTINS) {
+                if (prefix.isEmpty() || b.startsWith(prefix.toLowerCase())) {
+                    String insert = b + "(";
+                    proposals.add(new CompletionProposal(
+                        insert, prefixStart, prefix.length(),
+                        insert.length(), null, b + "(...) [builtin]", null, null));
+                }
             }
 
             return proposals.toArray(new ICompletionProposal[0]);
