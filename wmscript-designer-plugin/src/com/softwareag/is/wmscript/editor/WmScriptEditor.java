@@ -345,7 +345,6 @@ public class WmScriptEditor extends MultipageServiceEditor
         StyledText st = sourceViewer.getTextWidget();
         String text = st.getText();
 
-        // Apply output colors first, then input (input wins on overlap)
         for (String name : outputFieldNames) {
             applyColorToWord(st, text, name, outputColor);
         }
@@ -377,7 +376,6 @@ public class WmScriptEditor extends MultipageServiceEditor
     }
 
     private boolean isInsideComment(String text, int offset) {
-        // Find the start of the line containing offset
         int lineStart = text.lastIndexOf('\n', offset - 1) + 1;
         String linePrefix = text.substring(lineStart, offset).trim();
         return linePrefix.startsWith("//") || linePrefix.startsWith("#");
@@ -419,7 +417,6 @@ public class WmScriptEditor extends MultipageServiceEditor
 
     @Override
     public void assetChanged(NSRecord newIn, NSRecord newOut) {
-        // I/O signature changed in the I/O tab — reload field names and re-color
         if (server != null && servicePath != null) {
             loadFieldNames();
             scheduleColoring();
