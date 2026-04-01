@@ -110,22 +110,8 @@ public class WmScriptContentAssistProcessor implements IContentAssistProcessor {
                     break;
 
                 case ASSIGNMENT_LEFT:
-                    if (currentOutputFields != null) {
-                        for (String[] field : currentOutputFields) {
-                            String name = field[0];
-                            String type = field[1];
-                            if (name.toLowerCase().startsWith(prefix.toLowerCase())) {
-                                proposals.add(new CompletionProposal(
-                                    name, prefixStart, prefix.length(),
-                                    name.length(), null,
-                                    name + " : " + type + " [output]", null, null));
-                            }
-                        }
-                    }
-                    break;
-
                 case EXPRESSION:
-                    // Input fields
+                    // Show all pipeline fields — both input and output
                     if (currentInputFields != null) {
                         for (String[] field : currentInputFields) {
                             String name = field[0];
@@ -138,7 +124,18 @@ public class WmScriptContentAssistProcessor implements IContentAssistProcessor {
                             }
                         }
                     }
-                    // builtins and keywords already added above
+                    if (currentOutputFields != null) {
+                        for (String[] field : currentOutputFields) {
+                            String name = field[0];
+                            String type = field[1];
+                            if (name.toLowerCase().startsWith(prefix.toLowerCase())) {
+                                proposals.add(new CompletionProposal(
+                                    name, prefixStart, prefix.length(),
+                                    name.length(), null,
+                                    name + " : " + type + " [output]", null, null));
+                            }
+                        }
+                    }
                     break;
             }
 
