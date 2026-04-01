@@ -1,8 +1,4 @@
 // helloWorld - WmScript sample service
-//
-// @input firstName : string
-// @input lastName : string
-// @output greeting : string
 
 {value} = invoke pub.string:concat(inString1: firstName, inString2: " ")
 {value} = invoke pub.string:concat(inString1: value, inString2: lastName)

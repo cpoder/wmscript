@@ -5,10 +5,6 @@ A scripting language for [webMethods Integration Server](https://www.softwareag.
 WmScript compiles to Java bytecode and runs as a native IS service type — no interpreter overhead, full debuggability, and seamless interop with existing Flow and Java services.
 
 ```
-// @input firstName : string
-// @input lastName : string
-// @output greeting : string
-
 fullName = invoke pub.string:concat(inString1: firstName, inString2: " ")
 {fullName} = invoke pub.string:concat(inString1: fullName, inString2: lastName)
 
@@ -208,15 +204,21 @@ java -jar wmscript-compiler.jar compile-package /path/to/packages/MyPackage --is
 
 ## Language Reference
 
-### Variables and Assignment
+### Variables and the Pipeline
 
-Variables are pipeline fields. Assignment reads from and writes to the IS pipeline (IData).
+WmScript operates directly on the IS pipeline (IData). Every variable you read or write is a pipeline field. Inputs and outputs are defined in the standard I/O tab in Designer — the script simply reads input fields and sets output fields on the pipeline.
 
 ```
 name = "Alice"                     // set pipeline variable
 order.customer.name = "Bob"        // nested document field
 items[] = "apple"                  // append to array
 items[] = "banana"
+```
+
+The special `pipeline` variable gives access to the full IData object, useful for passing the entire pipeline to another service:
+
+```
+invoke myPkg.utils:audit(data: pipeline)
 ```
 
 #### Destructuring
@@ -441,25 +443,11 @@ return f"Processed {count} items"
    comment */
 ```
 
-### Pipeline Access
-
-The special variable `pipeline` gives direct access to the full IData:
-
-```
-// Pass entire pipeline to another service
-invoke myPkg.utils:logPipeline(data: pipeline)
-```
-
 ## Examples
 
 ### Process an Order
 
 ```
-// @input orderId : string
-// @input items : documentList
-// @output total : string
-// @output status : string
-
 log.info(f"Processing order {orderId} with {len(items)} items")
 
 // Calculate total from item amounts
@@ -483,11 +471,6 @@ status = "confirmed"
 ### REST API Integration with Retry
 
 ```
-// @input endpoint : string
-// @input payload : document
-// @output response : document
-// @output success : string
-
 retries = 0
 maxRetries = 3
 success = "false"
@@ -518,10 +501,6 @@ end
 ### Transform and Route Documents
 
 ```
-// @input documents : documentList
-// @output processed : string
-// @output errors : stringList
-
 count = 0
 for doc in documents:
     try:

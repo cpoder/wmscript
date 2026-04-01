@@ -114,7 +114,7 @@ public class WmScriptAdmin {
         }
         if (source == null || source.isEmpty()) {
             source = "// " + servicePath.substring(servicePath.indexOf(':') + 1)
-                   + " - WmScript service\n//\n// @input name : string\n// @output greeting : string\n\n"
+                   + " - WmScript service\n\n"
                    + "greeting = invoke pub.string:concat(inString1: \"Hello, \", inString2: name)\n";
         }
 

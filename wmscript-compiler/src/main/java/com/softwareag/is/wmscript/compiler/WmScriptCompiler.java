@@ -136,7 +136,7 @@ public class WmScriptCompiler {
         public final java.util.List<String> warnings;
         /** Maps generated Java line numbers to original .wms source line numbers */
         public final java.util.Map<Integer, Integer> sourceMap;
-        /** Declared input/output fields from @input/@output annotations */
+        /** Declared input/output fields (managed via Designer I/O tab) */
         public final java.util.List<FieldDecl> fields;
 
         public CompileResult(String javaSource, String className, String packageName,
