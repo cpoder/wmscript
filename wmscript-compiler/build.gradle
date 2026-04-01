@@ -1,0 +1,73 @@
+plugins {
+    id 'java'
+    id 'antlr'
+}
+
+group = 'com.softwareag.is'
+version = '0.1.0'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    antlr 'org.antlr:antlr4:4.13.2'
+    implementation 'org.antlr:antlr4-runtime:4.13.2'
+
+    // IS compile-only dependencies (not bundled - provided by IS at runtime)
+    compileOnly files(
+        '../../wm/IntegrationServer/lib/wm-isserver.jar',
+        '../../wm/common/lib/wm-isclient.jar',
+        '../../wm/common/lib/glue.jar'
+    )
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+generateGrammarSource {
+    arguments += ['-visitor', '-package', 'com.softwareag.is.wmscript.compiler.parser']
+    outputDirectory = file("${project.buildDir}/generated-src/antlr/main/com/softwareag/is/wmscript/compiler/parser")
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs += "${project.buildDir}/generated-src/antlr/main"
+        }
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
+
+// Runtime JAR: includes runtime + compiler + ANTLR (compilation happens on IS)
+task runtimeJar(type: Jar) {
+    archiveBaseName = 'wmscript-runtime'
+    from sourceSets.main.output
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+runtimeJar.dependsOn classes
+
+// Compiler JAR: fat JAR with compiler + ANTLR runtime for CLI use
+task compilerJar(type: Jar) {
+    archiveBaseName = 'wmscript-compiler'
+    manifest {
+        attributes 'Main-Class': 'com.softwareag.is.wmscript.compiler.WmScriptCompiler'
+    }
+    from sourceSets.main.output
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+compilerJar.dependsOn classes

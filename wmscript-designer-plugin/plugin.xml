@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+   <!-- ============================================================ -->
+   <!-- 1. Content type for WmScript services                         -->
+   <!--    contentTypeClass maps to our ISWmScriptServiceNode          -->
+   <!--    which EditorUtils uses to find the right editor             -->
+   <!-- ============================================================ -->
+   <extension point="org.eclipse.core.contenttype.contentTypes">
+      <content-type
+            base-type="com.softwareag.is.core.serviceContentType"
+            file-extensions="wmscriptservice"
+            id="com.softwareag.is.wmscript.wmscriptServiceContentType"
+            name="WmScript Service"
+            priority="high">
+         <property name="com.softwareag.is.core.contentTypeClass"
+            default="com.softwareag.is.wmscript.editor.ISWmScriptServiceNode" />
+      </content-type>
+
+      <content-type
+            file-extensions="wms"
+            id="com.softwareag.is.wmscript.wmsContentType"
+            name="WmScript Source File"
+            priority="high">
+      </content-type>
+   </extension>
+
+   <!-- ============================================================ -->
+   <!-- 2. Asset creator: recognizes wmscript svc_type in Navigator    -->
+   <!-- ============================================================ -->
+   <extension point="com.softwareag.is.ui.navigator.assetCreator">
+      <assetCreator
+            class="com.softwareag.is.wmscript.editor.WmScriptAssetCreator"
+            id="com.softwareag.is.wmscript.assetCreator">
+      </assetCreator>
+   </extension>
+
+   <!-- ============================================================ -->
+   <!-- 3. TextMate grammar for syntax highlighting                   -->
+   <!-- ============================================================ -->
+   <extension point="org.eclipse.tm4e.registry.grammars">
+      <grammar
+            path="grammars/wmscript.tmLanguage.json"
+            scopeName="source.wmscript">
+      </grammar>
+      <scopeNameContentTypeBinding
+            contentTypeId="com.softwareag.is.wmscript.wmsContentType"
+            scopeName="source.wmscript">
+      </scopeNameContentTypeBinding>
+   </extension>
+
+   <!-- ============================================================ -->
+   <!-- 4. WmScript Editor — opens service.wms from marker file       -->
+   <!-- ============================================================ -->
+   <extension point="org.eclipse.ui.editors">
+      <editor
+            class="com.softwareag.is.wmscript.editor.WmScriptEditor"
+            default="true"
+            icon="icons/wmscript.png"
+            id="com.softwareag.is.wmscript.editor"
+            name="WmScript Editor">
+         <contentTypeBinding
+               contentTypeId="com.softwareag.is.wmscript.wmscriptServiceContentType">
+         </contentTypeBinding>
+         <contentTypeBinding
+               contentTypeId="com.softwareag.is.wmscript.wmsContentType">
+         </contentTypeBinding>
+      </editor>
+   </extension>
+
+   <!-- ============================================================ -->
+   <!-- 5. Language configuration (brackets, comments)                -->
+   <!-- ============================================================ -->
+   <extension point="org.eclipse.tm4e.languageconfiguration.languageConfigurations">
+      <languageConfiguration
+            contentTypeId="com.softwareag.is.wmscript.wmsContentType"
+            path="grammars/language-configuration.json">
+      </languageConfiguration>
+   </extension>
+
+</plugin>

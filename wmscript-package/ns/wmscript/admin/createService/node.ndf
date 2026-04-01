@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Values version="2.0">
+  <value name="svc_type">java</value>
+  <value name="svc_subtype">default</value>
+  <value name="svc_sigtype">java 3.5</value>
+  <record name="java_data" javaclass="com.wm.util.Values">
+    <value name="class">com.softwareag.is.wmscript.runtime.WmScriptAdmin</value>
+    <value name="method">createService</value>
+  </record>
+  <value name="stateless">yes</value>
+  <value name="is_public">true</value>
+</Values>

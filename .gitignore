@@ -1,0 +1,30 @@
+# Build artifacts
+wmscript-compiler/.gradle/
+wmscript-compiler/build/
+wmscript-designer-plugin/bin/
+*.class
+
+# Packaged plugin JAR (build from source)
+wmscript-designer-plugin.jar
+
+# Runtime JAR in IS package (built by compiler project)
+wmscript-package/code/jars/*.jar
+wmscript-package/code/jars/static/
+
+# Generated/compiled WmScript services (rebuilt from .wms source)
+wmscript-package/code/classes/
+
+# IDE / tools
+.claude/
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+
+# MCP config (contains local server credentials)
+.mcp.json
+
+# OS
+.DS_Store
+Thumbs.db
